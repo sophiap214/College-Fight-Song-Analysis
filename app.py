@@ -57,14 +57,14 @@ app_ui = ui.page_navbar(
                 </p>
 
                 <p style="font-family: 'Clarendon Bold', serif; font-size: 1.05rem; max-width: 1800px;">
-                If you are interested in our code, <a href="https://github.com/your-repo" target="_blank">click here</a>!
+                If you are interested in our code, <a href="https://github.com/sophiap214/College-Fight-Song-Analysis" target="_blank">click here</a>!
                 </p>
 
                 <p style="font-family: 'Clarendon Bold', serif; font-size: 1.05rem; max-width: 1800px;">
-                - Sophia Perez and Andre Bianchi
+                - Andre Bianchi and Sophia Perez
                 </p>
                 """
-            ),  # Keep your abstract HTML
+            ),
             style="padding: 24px;"
         ),
     ),
@@ -110,13 +110,48 @@ app_ui = ui.page_navbar(
         ),
     ),
 
-    # ===== TAB 2: BY CONFERENCE (NO SIDEBAR) =====
+    # ===== TAB 2: BY CONFERENCE=====
     ui.nav_panel(
         "By conference",
-        ui.h2("Fight Song Trope Profiles by Conference",
-              style="font-family: 'Clarendon Bold', serif;"),
-        ui.p("Top 5 conferences by sample size."),
-        ui.output_plot("plot_conf", height="420px"),
+
+        ui.page_sidebar(
+            ui.sidebar(
+                ui.h4("Compare conferences"),
+                ui.output_ui("conf_picker_ui"),
+                ui.hr(),
+                ui.input_checkbox_group(
+                    "conf_dims",
+                    "Radar dimensions",
+                    choices={
+                        "Victory/Win/Won": "Victory / Win / Won",
+                        "Fight": "Fight",
+                        "Rah": "Rah",
+                        "Nonsense": "Nonsense",
+                        "Men": "Men",
+                        "Colors": "Colors",
+                        "Opponents": "Opponents",
+                    },
+                    selected=[
+                        "Victory/Win/Won", "Fight", "Rah", "Nonsense", "Men", "Colors", "Opponents"
+                    ],
+                ),
+                width=340,
+            ),
+
+            ui.h2(
+                "Fight Song Trope Profiles by Conference",
+                style="font-family: 'Clarendon Bold', serif;"
+            ),
+            ui.h6(
+                "The radar plot shows the proportion of songs featuring each trope, aggregated by athletic conference. The conferences included correspond to the Power Five as they existed in the 2022, before the most recent wave of realignment, which saw many schools changing conferences. The comparission between conferences allow for a better analysis of their values and regional differences between them.",
+                style="font-family: 'Clarendon Bold', serif;"
+            ),
+            ui.p("Click a button to toggle between different conferences and tropes.",
+                style="font-family: 'Clarendon Bold', serif;"),
+            ui.output_ui("conf_compare_stats"),
+            ui.hr(),
+            ui.output_plot("conf_radar_compare", height="420px"),
+        ),
     ),
 
     # ===== TAB 3: STUDENT / CONTEST ANALYSIS =====
@@ -124,7 +159,10 @@ app_ui = ui.page_navbar(
         "By authorship",
         ui.h2("Fight Song Trope Usage by Authorship",
               style="font-family: 'Clarendon Bold', serif;"),
-        ui.p("Click a button below to toggle between plots."),
+        ui.h6("These two plots show the proportion of songs featuring each trope, broken down by who wrote the songs and how they were selected. Some universities allow students to compose fight songs or submit them through a contest. Comparing these groups highlights which tropes are most popular among student composers and contest entrants versus those created by non-students or selected by other means.",
+                style="font-family: 'Clarendon Bold', serif;"),
+        ui.p("Click a button below to toggle between plots.",
+                style="font-family: 'Clarendon Bold', serif;"),
         ui.input_radio_buttons(
             "student_contest_plot",
             "Select plot:",
@@ -238,7 +276,7 @@ def server(input, output, session):
         1920: "Roaring Twenties: Economic prosperity and cultural dynamism characterized the decade. Jazz, flappers, and new forms of entertainment emerged, and college campuses embraced spirited events, football, and lively social traditions.",
         1930: "Great Depression: Economic hardship shaped everyday life. Despite financial challenges, colleges maintained traditions, with fight songs often reflecting resilience and community pride in difficult times. All songs use the 'Fight' trope here.",
         1940: "World War II: American involvement affected campus populations as many students joined the military. College events, songs, and sports often incorporated patriotic themes, morale-building, and support for the war effort.",
-        1950: "Post-war boom and Cold War beginnings: Returning veterans fueled campus growth through the GI Bill. Colleges expanded, football and other sports flourished, and societal optimism mixed with the tension of emerging Cold War politics. The 'Fight' and 'Victory' tropes fall while the use of opponents in fight songs starts to ri",
+        1950: "Post-war boom and Cold War beginnings: Returning veterans fueled campus growth through the GI Bill. Colleges expanded, football and other sports flourished, and societal optimism mixed with the tension of emerging Cold War politics. The 'Fight' and 'Victory' tropes fall while the use of opponents in fight songs starts to rise.",
         1960: "Civil Rights Movement and social change: Activism and social justice influenced campuses nationwide. Music, including fight songs and student performances, reflected changing attitudes, while traditional college traditions coexisted with broader societal transformation.",
 
     }
@@ -374,74 +412,198 @@ def server(input, output, session):
         return fig
 
     # ---------- Plot by Conference ----------
+    CONF_COLORS = {
+    "ACC": "#A5A9AB",
+    "Big Ten": "#0088CE",
+    "Big 12": "#C8102E",
+    "Pac-12": "#092346",
+    "SEC": "#FBCE28",
+    }
+
+    CONF_LOGOS = {
+    "ACC": "logos/acc.png",
+    "Big Ten": "logos/bigten.png",
+    "Big 12": "logos/big12.png",
+    "Pac-12": "logos/pac12.png",
+    "SEC": "logos/sec.png",
+    }
+
+    def conf_label(conf_name: str) -> str:
+        src = CONF_LOGOS.get(conf_name, "")
+        if src:
+            return f"""
+            <div style="display:flex; align-items:center; gap:10px;">
+            <img src="{src}"
+                style="
+                height:50px;
+                width:50px;
+                object-fit: contain;
+                ">
+            <span>{conf_name}</span>
+            </div>
+            """
+        return conf_name
+
     @output
-    @render.plot
-    def plot_conf():
+    @render.ui
+    def conf_picker_ui():
+        ct = conf_tables()
+        if ct is None:
+            return ui.p("No conference data available.")
+
+        conf_trope, conf_counts, top5 = ct
+
+        # build choices with logo HTML
+        choices = {c: ui.HTML(conf_label(c)) for c in top5}
+
+        # NOTE: this creates the input (so we can show logos in labels)
+        return ui.input_checkbox_group(
+            "confs",
+            None,
+            choices=choices,
+            selected=top5[:2] if len(top5) >= 2 else top5,
+        )
+
+    @output
+    @render.ui
+    def conf_compare_stats():
+        ct = conf_tables()
+        if ct is None:
+            return ui.p("No conference data available.")
+
+        conf_trope, conf_counts, top5 = ct
+        if "confs" not in input:
+            return ui.p("Select one or more conferences.")
+
+        selected_confs = [c for c in (input.confs() or []) if c in conf_trope.index]
+        if not selected_confs:
+            return ui.p("Select one or more conferences.")
+
+        blocks = []
+        for c in selected_confs:
+            vals = conf_trope.loc[c]
+            n = int(conf_counts.get(c, 0))
+            blocks.append(
+                ui.div(
+                    ui.div(
+                        ui.HTML(conf_label(c)),
+                        style="margin-bottom:6px;"
+                    ),
+                    #ui.p(f"n = {n}", style="margin:0;"),
+                    ui.p(
+                        f"Victory {vals['Victory/Win/Won']:.2f} • Fight {vals['Fight']:.2f} • Rah {vals['Rah']:.2f} • Nonsense {vals['Nonsense']:.2f} • Men {vals['Men']:.2f} • Colors {vals['Colors']:.2f} • Opponents {vals['Opponents']:.2f}",
+                        style="margin:0;",
+                    ),
+                    style=f"padding:10px; border-left:6px solid {CONF_COLORS.get(c, '#444')}; margin-bottom:10px;",
+                )
+            )
+
+        return ui.div(*blocks)
+
+    @reactive.Effect
+    def _keep_conf_selection_valid():
+        ct = conf_tables()
+        if ct is None:
+            return
+        conf_trope, conf_counts, top5 = ct
+
+        # if the UI hasn't created the input yet, bail
+        if "confs" not in input:
+            return
+
+        current = input.confs() or []
+        current = [c for c in current if c in top5]
+
+        if not current and top5:
+            current = top5[:2] if len(top5) >= 2 else [top5[0]]
+
+        ui.update_checkbox_group("confs", selected=current)
+    
+    @reactive.calc
+    def conf_tables():
         d = fight_songs_data()
         if d is None:
-            fig, ax = plt.subplots()
-            ax.set_axis_off()
-            return fig
+            return None
 
-        trope_cols = ["victory_bool", "fight_bool", "rah_bool", "nonsense_bool",
-                     "men_bool", "colors_bool", "opponents_bool"]
-
-        if "conference" not in d.columns:
-            fig, ax = plt.subplots()
-            ax.text(0.5, 0.5, "Missing 'conference' column in fight-songs.csv",
-                    ha="center", va="center")
-            ax.set_axis_off()
-            return fig
+        trope_cols = [
+            "victory_bool", "fight_bool", "rah_bool", "nonsense_bool",
+            "men_bool", "colors_bool", "opponents_bool"
+        ]
 
         dd = d.dropna(subset=["conference"] + trope_cols).copy()
         if dd.empty:
-            fig, ax = plt.subplots()
-            ax.text(0.5, 0.5, "No rows with conference + trope data", ha="center", va="center")
-            ax.set_axis_off()
-            return fig
+            return None
 
-        conf_trope = dd.groupby("conference")[trope_cols].mean().rename(columns={
-            "victory_bool": "Victory/Win/Won",
-            "fight_bool": "Fight",
-            "rah_bool": "Rah",
-            "nonsense_bool": "Nonsense",
-            "men_bool": "Men",
-            "colors_bool": "Colors",
-            "opponents_bool": "Opponents",
-        })
+        conf_trope = (
+            dd.groupby("conference")[trope_cols]
+            .mean()
+            .rename(columns={
+                "victory_bool": "Victory/Win/Won",
+                "fight_bool": "Fight",
+                "rah_bool": "Rah",
+                "nonsense_bool": "Nonsense",
+                "men_bool": "Men",
+                "colors_bool": "Colors",
+                "opponents_bool": "Opponents",
+            })
+        )
 
         conf_counts = dd.groupby("conference").size().sort_values(ascending=False)
         top5 = conf_counts.head(5).index.tolist()
 
-        conf_colors = {"ACC": "#013CA6", "Big Ten": "#0B1F41",
-                       "Big 12": "#0033A0", "Pac-12": "#004B91", "SEC": "#1C2E4A"}
-        default_color = "#333333"
+        return conf_trope, conf_counts, top5
 
-        labels = conf_trope.columns.tolist()
-        n_vars = len(labels)
-        angles = np.linspace(0, 2 * np.pi, n_vars, endpoint=False)
-        angles_closed = np.concatenate([angles, [angles[0]]])
+    @output
+    @render.plot
+    def conf_radar_compare():
+        ct = conf_tables()
+        if ct is None:
+            fig, ax = plt.subplots()
+            ax.set_axis_off()
+            return fig
 
-        fig, axes = plt.subplots(1, max(1, len(top5)), figsize=(3.6 * len(top5), 4),
-                                 subplot_kw=dict(polar=True), constrained_layout=True)
-        if len(top5) == 1:
-            axes = [axes]
+        conf_trope, conf_counts, top5 = ct
 
-        for ax, conf in zip(axes, top5):
-            vals = conf_trope.loc[conf].values
-            vals_closed = np.concatenate([vals, [vals[0]]])
-            color = conf_colors.get(conf, default_color)
+        selected_confs = input.confs() if "confs" in input else []
+        selected_confs = [c for c in selected_confs if c in conf_trope.index]
+        if not selected_confs:
+            fig, ax = plt.subplots()
+            ax.set_axis_off()
+            return fig
 
-            ax.plot(angles_closed, vals_closed, linewidth=2, color=color)
-            ax.fill(angles_closed, vals_closed, color=color, alpha=0.25)
-            ax.set_title(f"{conf}\n(n={int(conf_counts[conf])})", pad=14, fontsize=11)
-            ax.set_ylim(0, 1)
-            ax.set_thetagrids(np.degrees(angles), labels, fontsize=8)
-            ax.set_rgrids([0.25, 0.5, 0.75, 1.0], angle=0, fontsize=7)
-            ax.grid(alpha=0.35)
+        # which dimensions to show
+        dims = input.conf_dims()
+        dims = [d for d in dims if d in conf_trope.columns]
+        if len(dims) < 3:
+            fig, ax = plt.subplots()
+            ax.text(0.5, 0.5, "Select at least 3 dimensions for a radar plot.", ha="center", va="center")
+            ax.set_axis_off()
+            return fig
 
-        fig.suptitle("Fight Song Trope Profiles by Conference", fontsize=14)
+        labels = dims
+        angles = np.linspace(0, 2*np.pi, len(labels), endpoint=False)
+        angles = np.r_[angles, angles[0]]
+
+        fig, ax = plt.subplots(figsize=(6.2, 6.2), subplot_kw=dict(polar=True))
+        ax.set_ylim(0, 1)
+        ax.set_yticklabels([])
+        ax.grid(alpha=0.35)
+        ax.set_thetagrids(np.degrees(angles[:-1]), labels, fontsize=9)
+
+        for c in selected_confs:
+            vals = conf_trope.loc[c, labels].values.astype(float)
+            vals = np.r_[vals, vals[0]]
+
+            color = CONF_COLORS.get(c, "#444444")
+            ax.plot(angles, vals, linewidth=2, color=color, label=f"{c} (n={int(conf_counts.get(c, 0))})")
+            ax.fill(angles, vals, alpha=0.18, color=color)
+
+        ax.legend(loc="upper left", bbox_to_anchor=(1.05, 1.05), frameon=False)
+        fig.tight_layout()
         return fig
+
+
+
 
 # ---------- App ----------
 app = App(app_ui, server, static_assets=Path(__file__).parent / "www")
