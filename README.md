@@ -12,6 +12,7 @@ Follow the link [here](https://sophiaperez.shinyapps.io/data_viz_competition/) t
 
 - **www/**  
   Contains the header image used in the app and other static assets.
+  Note: If using the code and running the app yourself, ensure all of the PNG logos are under one folder titled "logos" inside the www folder
 
 - **Brainstorming.ipynb**  
   A Jupyter notebook where we explored and experimented with the data before building the final app.
