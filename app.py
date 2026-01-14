@@ -505,19 +505,18 @@ def server(input, output, session):
         ct = conf_tables()
         if ct is None:
             return
-        conf_trope, conf_counts, top5 = ct
 
-        # if the UI hasn't created the input yet, bail
+        _, _, top5 = ct
+
         if "confs" not in input:
             return
 
         current = input.confs() or []
-        current = [c for c in current if c in top5]
+        valid = [c for c in current if c in top5]
 
-        if not current and top5:
-            current = top5[:2] if len(top5) >= 2 else [top5[0]]
-
-        ui.update_checkbox_group("confs", selected=current)
+        # ONLY update if something actually became invalid
+        if valid != current:
+            ui.update_checkbox_group("confs", selected=valid)
     
     @reactive.calc
     def conf_tables():
