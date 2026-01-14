@@ -10,3 +10,9 @@ __pycache__/
 
 # RStudio / deployment artifacts
 rsconnect-python/
+
+# Scratch / exploratory files
+Brainstorming.ipynb
+Football Field.ipynb
+test.py
+
