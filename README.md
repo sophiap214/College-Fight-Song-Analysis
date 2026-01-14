@@ -24,13 +24,3 @@ College fight songs are a unique intersection of music, athletics, and instituti
 
 - **.gitignore**  
   Specifies files and directories that Git should ignore.
-
----
-
-## Usage
-
-1. Clone the repository:
-
-```bash
-git clone https://github.com/sophiap214/College-Fight-Song-Analysis.git
-cd College-Fight-Song-Analysis
