@@ -1,10 +1,10 @@
-# College-Fight-Song-Analysis
+# College Fight Song Analysis
 College fight songs are a unique intersection of music, athletics, and institutional identity. This repository contains the code for a data visualization project that examines how common lyrical tropes, such as references to victory, opponents, school colors, and collective identity, have evolved across decades, by athletic conference, and by authorship.
 
 ---
 ## Accessing the Shiny App
 
-Follow the link here to view our visualization!
+Follow the link [here](https://sophiaperez.shinyapps.io/data_viz_competition/) to view our visualization!
 
 ---
 
